@@ -1,9 +1,7 @@
 import util
 import classificationMethod
-from collections import Counter
-from collections import defaultdict
 import math
-
+import collections
 
 class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
     """
@@ -17,9 +15,9 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
         self.type = "naivebayes"
         self.k = 1  # this is the smoothing parameter, ** use it in your train method **
         self.automaticTuning = False  # Look at this flag to decide whether to choose k automatically ** use this in your train method **
-        self.classes = None
-        self.prior_prob = None
-        self.likelihoods = None
+        self.odds = None
+        self.cats = None
+        self.prior = None
 
     def setSmoothing(self, k):
         """
@@ -27,6 +25,12 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
         Do not modify this method.
         """
         self.k = k
+
+    def occurr(self, result):
+        prob = dict(collections.Counter(result))
+        for key in prob.keys():
+            prob[key] = prob[key] / float(len(result))
+        return prob
 
     def train(self, trainingData, trainingLabels, validationData, validationLabels):
         """
@@ -42,13 +46,6 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
 
         self.trainAndTune(trainingData, trainingLabels, validationData, validationLabels, kgrid)
 
-    def _occurrences(self, outcome):
-        no_of_examples = len(outcome)
-        prob = dict(Counter(outcome))
-        for key in prob.keys():
-            prob[key] = prob[key] / float(no_of_examples)
-        return prob
-
     def trainAndTune(self, trainingData, trainingLabels, validationData, validationLabels, kgrid):
 
         """
@@ -61,70 +58,41 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
         To get the list of all possible features or labels, use self.features and
         self.legalLabels.
         """
-        no_of_examples = len(trainingLabels)
-        prior_prob = dict(Counter(trainingLabels))
-        for key in prior_prob.keys():
-            prior_prob[key] = prior_prob[key] / float(no_of_examples)
+        
+        prior = dict(collections.Counter(trainingLabels))
+        for key in prior.keys():
+            prior[key] = prior[key] / float(len(trainingLabels))
 
-        self.prior_prob = prior_prob
+        self.prior = prior
 
-        likelihoods = dict()
-        for cls, prob in prior_prob.items():
-            # initializing the dictionary
-            likelihoods[cls] = defaultdict(list)
+        odds = dict()
+        for c, prob in prior.items():
+            odds[c] = collections.defaultdict(list)
 
-        for cls, prob in prior_prob.items():
-            # taking samples of only 1 class at a time
-            row_indices = list()
-            for index, value in enumerate(trainingLabels):
-                if value == cls:
-                    row_indices.append(index)
+        for c, prob in prior.items():
+            row = list()
+            for index, val in enumerate(trainingLabels):
+                if c == val:
+                    row.append(index)
 
             subset = list()
-            for index in row_indices:
+            for index in row:
                 subset.append(trainingData[index])
 
             for r in range(len(subset)):
-                for key, value in subset[r].items():
-                    likelihoods[cls][key].append(value)
+                for key, val in subset[r].items():
+                    odds[c][key].append(val)
 
-        classes = [key for key in prior_prob]
-        self.classes = classes
-        _like = likelihoods
-        for cls in classes:
-            for key, value in likelihoods[cls].items():
-                likelihoods[cls][key] = self._occurrences(likelihoods[cls][key])
+        cats = [k for k in prior]
 
-        self.likelihoods = likelihoods
+        _odds = odds
+        for c in cats:
+            for key, val in odds[c].items():
+                odds[c][key] = self.occurr(odds[c][key])
 
-        # results = {}
-        # correct = 0
-        # for itr in range(len(validationData)):
-        #     for cls in classes:
-        #         class_probability = prior_prob[cls]
-        #         for key, value in validationData[itr].items():
-        #             relative_feature_values = likelihoods[cls][key]
-        #             class_probability *= relative_feature_values.get(validationData[itr][key], 0.01)
-        #
-        #         results[cls] = class_probability
-        #
-        #     norm_factor = 0.0
-        #
-        #     for key, value in results.items():
-        #         norm_factor += value
-        #
-        #     for key in results:
-        #         try:
-        #             results[key] = results[key]/norm_factor
-        #         except ZeroDivisionError:
-        #             pass
-        #
-        #     if (list(results.keys())[list(results.values()).index(max([value for key, value in results.items()]))]) == validationLabels[itr]:
-        #         correct += 1
-        #
-        # print "validation accuracy: {}%".format((correct/float(len(validationLabels))) * 100)
-
-
+        self.odds = odds
+        self.cats = cats
+    
     def classify(self, testData):
         """
         Classify the data based on the posterior distribution over labels.
@@ -145,13 +113,15 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
         logJoint[3] = <Estimate of log( P(Label = 3, datum) )>
         """
         logJoint = util.Counter()
-        for cls in self.classes:
-            class_probability = self.prior_prob[cls]
-            for key, value in datum.items():
-                relative_feature_values = self.likelihoods[cls][key]
-                class_probability += math.log(relative_feature_values.get(datum[key], 0.01))
+        
+        "*** YOUR CODE HERE ***"
+        for c in self.cats:
+            catProb = self.prior[c]
+            for key, val in datum.items():
+                relFeatVal = self.odds[c][key]
+                catProb += math.log(relFeatVal.get(datum[key], 0.01))
 
-            logJoint[cls] = class_probability
+            logJoint[c] = catProb
 
         return logJoint
 
