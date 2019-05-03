@@ -1,8 +1,8 @@
 # This file contains feature extraction methods and harness
 # code for data classification
 
-import mostFrequent
 import naiveBayes
+import mira
 import perceptron
 import samples
 import sys
@@ -190,8 +190,8 @@ def readCommand(argv):
                       default= False, action='store_true')
 
     parser.add_option('-c', '--classifier', help=default('The type of classifier'),
-                      choices=['mostFrequent', 'naiveBayes', 'perceptron', 'knn'],
-                      default='mostFrequent')
+                      choices=['perceptron', 'naiveBayes', 'mira'],
+                      default='naiveBayes')
     parser.add_option('-d', '--data', help=default('Dataset to use'), choices=['digits', 'faces'], default='digits')
     parser.add_option('-t', '--training', help=default('The ratio of the training set to use'), default=1.0,
                       type="float")
@@ -257,8 +257,8 @@ def readCommand(argv):
             print(USAGE_STRING)
             sys.exit(2)
 
-    if options.classifier == "mostFrequent":
-        classifier = mostFrequent.MostFrequentClassifier(legalLabels)
+    if options.classifier == "mira":
+        classifier = mira.MiraClassifier(legalLabels, options.iterations)
     elif options.classifier == "naiveBayes":
         classifier = naiveBayes.NaiveBayesClassifier(legalLabels)
         classifier.setSmoothing(options.smoothing)
@@ -449,3 +449,4 @@ if __name__ == '__main__':
     args, options = readCommand(sys.argv[1:])
     # Run classifier
     runClassifier(args, options)
+

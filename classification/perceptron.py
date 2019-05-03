@@ -49,7 +49,10 @@ class PerceptronClassifier:
       print "Starting iteration ", iteration, "..."
       for i in range(len(trainingData)):
           "*** YOUR CODE HERE ***"
-          util.raiseNotDefined()
+          real, pred = trainingLabels[i], self.classify([trainingData[i]])[0]
+          if real != pred:
+              self.weights[real] += trainingData[i]
+              self.weights[pred] -= trainingData[i]
     
   def classify(self, data ):
     """
