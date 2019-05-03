@@ -63,8 +63,6 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
         for key in prior.keys():
             prior[key] = prior[key] / float(len(trainingLabels))
 
-        self.prior = prior
-
         odds = dict()
         for c, prob in prior.items():
             odds[c] = collections.defaultdict(list)
@@ -75,12 +73,12 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
                 if c == val:
                     row.append(index)
 
-            subset = list()
+            sub = list()
             for index in row:
-                subset.append(trainingData[index])
+                sub.append(trainingData[index])
 
-            for r in range(len(subset)):
-                for key, val in subset[r].items():
+            for r in range(len(sub)):
+                for key, val in sub[r].items():
                     odds[c][key].append(val)
 
         cats = [k for k in prior]
@@ -89,7 +87,8 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
         for c in cats:
             for key, val in odds[c].items():
                 odds[c][key] = self.occurr(odds[c][key])
-
+        
+        self.prior = prior
         self.odds = odds
         self.cats = cats
     

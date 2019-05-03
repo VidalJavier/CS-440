@@ -63,42 +63,44 @@ def enhancedFeatureExtractorDigit(datum):
     features = basicFeatureExtractorDigit(datum)
     for x in range(DIGIT_DATUM_WIDTH):
         for y in range(DIGIT_DATUM_HEIGHT):
-            if (datum.getPixel(x, y) > datum.getPixel(x, y - 1)):
-                features[(x, y, 0)] = 1
-            else:
-                features[(x, y, 0)] = 0
-            if (datum.getPixel(x, y - 1) > datum.getPixel(x, y)):
-                features[(x, y, 1)] = 1
-            else:
-                features[(x, y, 1)] = 0
-            if (datum.getPixel(x, y) > datum.getPixel(x - 1, y)):
-                features[(x, y, 2)] = 1
-            else:
-                features[(x, y, 2)] = 0
-            if (datum.getPixel(x - 1, y) > datum.getPixel(x, y)):
-                features[(x, y, 3)] = 1
-            else:
-                features[(x, y, 3)] = 0
+            features[("horiz", x, y)] = int(datum.getPixel(x, y) >
+                                            datum.getPixel(x - 1, y))
 
-    def horizontalLineWidth():
-        halfHorizontalLineWidth = DIGIT_DATUM_WIDTH / 3
-        for y in range(DIGIT_DATUM_HEIGHT):
-            x_count = len([x for x in range(DIGIT_DATUM_WIDTH) if datum.getPixel(x, y) > 0])
-            if x_count > halfHorizontalLineWidth:
-                return 1
-        return 0
+            features[("verti", x, y)] = int(datum.getPixel(x, y) >
+                                            datum.getPixel(x, y - 1)) 
+    
 
-    def verticalLineHeight():
-        halfVerticalLineHeight = DIGIT_DATUM_HEIGHT / 3
-        for x in range(DIGIT_DATUM_WIDTH):
-            y_count = len([y for y in range(DIGIT_DATUM_HEIGHT) if datum.getPixel(x, y) > 0])
-            if y_count > halfVerticalLineHeight:
-                return 1
-        return 0
+    # Check for continuous regions
+    def getNeighbors(x, y):
+        neighbors = []
+        if x > 0:
+            neighbors.append((x - 1, y))
+        if x < DIGIT_DATUM_WIDTH - 1:
+            neighbors.append((x + 1, y))
+        if y > 0:
+            neighbors.append((x, y - 1))
+        if y < DIGIT_DATUM_HEIGHT - 1:
+            neighbors.append((x, y + 1))
+        return neighbors
 
-    features[(0)] = horizontalLineWidth()
-    features[(1)] = verticalLineHeight()
+    region = set()
+    contiguous = 0
+    for x in xrange(DIGIT_DATUM_WIDTH):
+        for y in xrange(DIGIT_DATUM_HEIGHT):
+            if (x, y) not in region and datum.getPixel(x, y) < 2:
+                contiguous += 1
+                stack = [(x, y)]
+                while stack:
+                    point = stack.pop()
+                    region.add(point)
+                    for neighbor in getNeighbors(*point):
+                        if datum.getPixel(*neighbor) < 2 and neighbor not in region:
+                            stack.append(neighbor)
 
+    features["contiguous0"] = contiguous % 2
+    features["contiguous1"] = (contiguous >> 1) % 2
+    features["contiguous2"] = (contiguous >> 2) % 2
+    
     return features
 
 
@@ -109,41 +111,7 @@ def enhancedFeatureExtractorFace(datum):
     """
 
     features = basicFeatureExtractorFace(datum)
-    first_grad = util.Counter()
-    second_grad = util.Counter()
-
-    for x in range(FACE_DATUM_WIDTH):
-        for y in range(FACE_DATUM_HEIGHT):
-            if 0 < x < FACE_DATUM_WIDTH - 1 and y > 0 and y < FACE_DATUM_HEIGHT - 1:
-                grax = (features[(x - 1, y + 1)] + 2 * features[(x, y + 1)] + features[(x + 1, y + 1)]) - (
-                        features[(x - 1, y - 1)] + 2 * features[(x, y - 1)] + features[(x + 1, y - 1)])
-                gray = (features[(x - 1, y + 1)] + 2 * features[(x - 1, y)] + features[(x - 1, y - 1)]) - (
-                        features[(x + 1, y + 1)] + 2 * features[(x + 1, y)] + features[(x + 1, y - 1)])
-                first_grad[(x, y)] = math.sqrt(math.pow(grax, 2) + math.pow(gray, 2))
-                if first_grad[(x, y)] > 0:
-                    first_grad[(x, y)] = 1
-                else:
-                    first_grad[(x, y)] = 0
-            else:
-                first_grad[(x, y)] = 0
-
-    for x in range(FACE_DATUM_WIDTH):
-        for y in range(FACE_DATUM_HEIGHT):
-            if 0 < x < FACE_DATUM_WIDTH - 1 and y > 0 and y < FACE_DATUM_HEIGHT - 1:
-                grax = (first_grad[(x - 1, y + 1)] + 2 * first_grad[(x, y + 1)] + first_grad[(x + 1, y + 1)]) - (
-                        first_grad[(x - 1, y - 1)] + 2 * first_grad[(x, y - 1)] + first_grad[(x + 1, y - 1)])
-                gray = (first_grad[(x - 1, y + 1)] + 2 * first_grad[(x - 1, y)] + first_grad[(x - 1, y - 1)]) - (
-                        first_grad[(x + 1, y + 1)] + 2 * first_grad[(x + 1, y)] + first_grad[(x + 1, y - 1)])
-                second_grad[(x, y)] = math.sqrt(math.pow(grax, 2) + math.pow(gray, 2))
-                if second_grad[(x, y)] > 0:
-                    second_grad[(x, y)] = 1
-                else:
-                    second_grad[(x, y)] = 0
-            else:
-                second_grad[(x, y)] = 0
-
-    return second_grad
-
+    return features
 
 def analysis(classifier, guesses, testLabels, testData, rawTestData, printImage):
     """
