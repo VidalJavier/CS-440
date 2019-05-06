@@ -61,46 +61,6 @@ def enhancedFeatureExtractorDigit(datum):
     """
 
     features = basicFeatureExtractorDigit(datum)
-    for x in range(DIGIT_DATUM_WIDTH):
-        for y in range(DIGIT_DATUM_HEIGHT):
-            features[("horiz", x, y)] = int(datum.getPixel(x, y) >
-                                            datum.getPixel(x - 1, y))
-
-            features[("verti", x, y)] = int(datum.getPixel(x, y) >
-                                            datum.getPixel(x, y - 1)) 
-    
-
-    # Check for continuous regions
-    def getNeighbors(x, y):
-        neighbors = []
-        if x > 0:
-            neighbors.append((x - 1, y))
-        if x < DIGIT_DATUM_WIDTH - 1:
-            neighbors.append((x + 1, y))
-        if y > 0:
-            neighbors.append((x, y - 1))
-        if y < DIGIT_DATUM_HEIGHT - 1:
-            neighbors.append((x, y + 1))
-        return neighbors
-
-    region = set()
-    contiguous = 0
-    for x in xrange(DIGIT_DATUM_WIDTH):
-        for y in xrange(DIGIT_DATUM_HEIGHT):
-            if (x, y) not in region and datum.getPixel(x, y) < 2:
-                contiguous += 1
-                stack = [(x, y)]
-                while stack:
-                    point = stack.pop()
-                    region.add(point)
-                    for neighbor in getNeighbors(*point):
-                        if datum.getPixel(*neighbor) < 2 and neighbor not in region:
-                            stack.append(neighbor)
-
-    features["contiguous0"] = contiguous % 2
-    features["contiguous1"] = (contiguous >> 1) % 2
-    features["contiguous2"] = (contiguous >> 2) % 2
-    
     return features
 
 
@@ -319,7 +279,7 @@ def runClassifier(args, options):
 
         numTraining = int(451 * trainingFactor)
 
-        print "using {} datapoints ouy of {} ({}%) for faces".format(numTraining, 451, 100 * (numTraining/float(451)))
+        print "using {} datapoints out of {} ({}%) for faces".format(numTraining, 451, 100 * (numTraining/float(451)))
 
         rawTrainingData = samples.loadDataFile("facedata/facedatatrain", numTraining, FACE_DATUM_WIDTH,
                                                FACE_DATUM_HEIGHT)
@@ -334,7 +294,7 @@ def runClassifier(args, options):
 
         numTraining = int(5000 * trainingFactor)
 
-        print "using {} datapoints ouy of {} ({}%) for digits".format(numTraining, TEST_SET_SIZE, 100 * (numTraining/float(5000)))
+        print "using {} datapoints out of {} ({}%) for digits".format(numTraining, TEST_SET_SIZE, 100 * (numTraining/float(5000)))
 
         rawTrainingData = samples.loadDataFile("digitdata/trainingimages", numTraining, DIGIT_DATUM_WIDTH,
                                                DIGIT_DATUM_HEIGHT)
